@@ -61,7 +61,8 @@ textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:
   <textarea id="ta" readonly hidden aria-label="Testo da copiare"></textarea>
 
   <div class="card"><ul id="lista"></ul></div>
-  <p class="note">Unisce la lista della Dispensa e le scorte di Casa con 2 unità o meno. Gli articoli presenti in entrambe compaiono una volta sola. La spunta sugli articoli della Dispensa si salva anche nella Dispensa; quella sugli articoli di Casa resta su questo telefono, perché in Casa la voce esce da sola quando rimetti la scorta sopra 2.</p>
+  <p class="note" id="avviso" hidden></p>
+  <p class="note">Unisce la lista della Dispensa e la lista della spesa di Casa. Gli articoli presenti in entrambe compaiono una volta sola. La spunta si salva nell'app di origine; spuntare un articolo di Casa ne aumenta anche la scorta, come fa Casa.</p>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.5/firebase-app-compat.js"></script>
@@ -87,16 +88,25 @@ textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:
   const norm = s => String(s || '').trim().toLowerCase();
   const fmtN = n => String(Math.round(n * 100) / 100).replace('.', ',');
   const stato = { dispensa: { s: 'carico', msg: '' }, casa: { s: 'carico', msg: '' } };
-  let spesaDis = [], scorteCasa = [];
-  let preseCasa = new Set();
+  let spesaDis = [], spesaCasa = [], scorteCasa = [];
   let nascondi = false;
-  let dbDis = null;
+  let dbDis = null, dbCasa = null;
 
-  try { preseCasa = new Set(JSON.parse(localStorage.getItem('spesa.preseCasa') || '[]')); } catch (e) {}
   try { nascondi = localStorage.getItem('spesa.nascondi') === '1'; } catch (e) {}
   $('nascondi').checked = nascondi;
 
-  const salvaPreseCasa = () => { try { localStorage.setItem('spesa.preseCasa', JSON.stringify([...preseCasa])); } catch (e) {} };
+  const num = (v, d) => { const n = parseInt(v, 10); return Number.isFinite(n) ? n : d; };
+
+  // Voci della lista di Casa: quelle da comprare e quelle già comprate; le "tolte" a mano restano nascoste.
+  // Per ogni nome si tiene una sola voce: quella ancora aperta, altrimenti l'ultima comprata.
+  function vociCasa() {
+    const per = new Map();
+    spesaCasa.filter(x => x.comprato || !x.tolto).forEach(x => {
+      const k = norm(x.nome), v = per.get(k);
+      if (!v || (v.comprato && !x.comprato) || (v.comprato === x.comprato && String(x.creataIl) > String(v.creataIl))) per.set(k, x);
+    });
+    return per;
+  }
 
   // Unisce le due liste in una sola, senza doppioni (stesso nome = stessa riga).
   function righe() {
@@ -104,25 +114,35 @@ textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:
     spesaDis.filter(s => !s.nascosto).forEach(s => {
       mappa.set(norm(s.nome), { nome: s.nome, dis: s, cas: null });
     });
-    scorteCasa.filter(s => s.quantita <= SOGLIA_CASA).forEach(s => {
-      const k = norm(s.nome), r = mappa.get(k);
-      if (r) r.cas = s; else mappa.set(k, { nome: s.nome, dis: null, cas: s });
+    vociCasa().forEach((x, k) => {
+      const r = mappa.get(k);
+      if (r) r.cas = x; else mappa.set(k, { nome: x.nome, dis: null, cas: x });
     });
     const out = [...mappa.values()].map(r => {
       // "preso" vale solo se tutte le fonti presenti lo dicono
       const flags = [];
       if (r.dis) flags.push(!!r.dis.preso);
-      if (r.cas) flags.push(preseCasa.has(r.cas.id));
+      if (r.cas) flags.push(!!r.cas.comprato);
       r.preso = flags.every(Boolean);
       return r;
     });
     return out.sort((a, b) => (a.preso - b.preso) || a.nome.localeCompare(b.nome, 'it'));
   }
 
+  // Scorte basse che in Casa non hanno ancora una voce: compaiono quando si apre l'app Casa.
+  function scorteSenzaVoce() {
+    const conVoce = new Set(spesaCasa.map(x => x.scortaId).filter(Boolean));
+    return scorteCasa.filter(s => num(s.quantita, 0) <= SOGLIA_CASA && !conVoce.has(s.id));
+  }
+
   function dettaglio(r) {
     const p = [];
     if (r.dis && typeof r.dis.n === 'number') p.push(fmtN(r.dis.n) + (r.dis.unita ? ' ' + r.dis.unita : ''));
-    if (r.cas) p.push('in casa: ' + r.cas.quantita + (r.cas.unita ? ' ' + r.cas.unita : ''));
+    if (r.cas) {
+      const s = scorteCasa.find(y => y.id === r.cas.scortaId);
+      p.push('da prendere: ' + num(r.cas.quantita, 1) + (r.cas.unita ? ' ' + r.cas.unita : ''));
+      if (s) p.push('in casa: ' + num(s.quantita, 0));
+    }
     return p;
   }
 
@@ -150,14 +170,32 @@ textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:
       dettaglio(r).forEach(x => { const s = document.createElement('span'); s.textContent = x; meta.appendChild(s); });
       body.append(nm, meta); li.append(cb, body); ul.appendChild(li);
     });
+    const senza = stato.casa.s === 'ok' ? scorteSenzaVoce() : [];
+    $('avviso').hidden = !senza.length;
+    if (senza.length) $('avviso').textContent = 'Scorte basse non ancora in lista (' + senza.map(s => s.nome).join(', ') + '): apri l\'app Casa per aggiungerle.';
     renderFonti();
   }
 
+  const erroreSalva = () => { $('count').textContent = 'Non sono riuscito a salvare la spunta'; };
+
+  // Come in Casa: comprare una voce nata da una scorta ne aumenta la quantità, togliere la spunta la riporta indietro.
+  function segnaCasa(x, comprato) {
+    if (!dbCasa || x.comprato === comprato) return;
+    const rifV = dbCasa.collection('spesa').doc(x.id);
+    const rifS = x.scortaId ? dbCasa.collection('scorte').doc(x.scortaId) : null;
+    x.comprato = comprato;
+    dbCasa.runTransaction(async t => {
+      const s = rifS ? await t.get(rifS) : null;
+      t.update(rifV, { comprato });
+      if (s && s.exists) t.update(rifS, { quantita: Math.max(0, num(s.data().quantita, 0) + (comprato ? 1 : -1) * num(x.quantita, 1)) });
+    }).catch(erroreSalva);
+  }
+
   function segna(r, preso) {
-    if (r.cas) { preso ? preseCasa.add(r.cas.id) : preseCasa.delete(r.cas.id); salvaPreseCasa(); }
+    if (r.cas) segnaCasa(r.cas, preso);
     if (r.dis) {
       r.dis.preso = preso;
-      if (dbDis) dbDis.collection('spesa').doc(r.dis.id).update({ preso }).catch(() => { $('count').textContent = 'Non sono riuscito a salvare la spunta'; });
+      if (dbDis) dbDis.collection('spesa').doc(r.dis.id).update({ preso }).catch(erroreSalva);
     }
     render();
   }
@@ -192,22 +230,30 @@ textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:
     try { app = firebase.initializeApp(FONTI[k].cfg, k); }
     catch (e) { stato[k] = { s: 'errore', msg: 'Non disponibile' }; return; }
     const auth = app.auth();
-    let off = null;
+    let off = [];
     auth.onAuthStateChanged(user => {
-      if (off) { off(); off = null; }
-      if (!user) { stato[k] = { s: 'sconnesso', msg: '' }; if (k === 'dispensa') spesaDis = []; else scorteCasa = []; render(); return; }
+      off.forEach(f => f()); off = [];
+      if (!user) {
+        stato[k] = { s: 'sconnesso', msg: '' };
+        if (k === 'dispensa') { spesaDis = []; dbDis = null; } else { spesaCasa = []; scorteCasa = []; dbCasa = null; }
+        render(); return;
+      }
       if (!EMAIL.includes(user.email)) {
         stato[k] = { s: 'errore', msg: 'Account non autorizzato' }; auth.signOut(); render(); return;
       }
       const db = app.firestore();
-      const col = k === 'dispensa' ? 'spesa' : 'scorte';
-      if (k === 'dispensa') dbDis = db;
-      off = db.collection(col).onSnapshot(snap => {
-        const dati = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
-        if (k === 'dispensa') spesaDis = dati;
-        else scorteCasa = dati.map(s => Object.assign({}, s, { quantita: parseInt(s.quantita, 10) || 0 }));
-        stato[k] = { s: 'ok', msg: '' }; render();
-      }, () => { stato[k] = { s: 'errore', msg: 'Connessione persa' }; render(); });
+      if (k === 'dispensa') dbDis = db; else dbCasa = db;
+      // Dispensa: la sua lista. Casa: la lista della spesa e le scorte (servono per aggiornare la quantità).
+      const cols = k === 'dispensa' ? ['spesa'] : ['spesa', 'scorte'];
+      cols.forEach(col => {
+        off.push(db.collection(col).onSnapshot(snap => {
+          const dati = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
+          if (k === 'dispensa') spesaDis = dati;
+          else if (col === 'spesa') spesaCasa = dati;
+          else scorteCasa = dati;
+          stato[k] = { s: 'ok', msg: '' }; render();
+        }, () => { stato[k] = { s: 'errore', msg: 'Connessione persa' }; render(); }));
+      });
     });
   }
 
