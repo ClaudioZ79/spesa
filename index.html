@@ -46,6 +46,18 @@ li.done .nm{text-decoration:line-through;color:var(--muted)}
 .actions label input{width:18px;height:18px;accent-color:var(--accent)}
 textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;padding:10px}
 .note{font-size:13px;color:var(--muted)}
+.add{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px;align-items:center}
+.add input[type=text]{flex:1 1 100%;min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;padding:0 12px}
+.dove{display:flex;flex:1;gap:6px}
+.dove label{flex:1}
+.dove input{position:absolute;opacity:0;pointer-events:none}
+.dove span{display:block;text-align:center;padding:8px 10px;border:1.5px solid var(--line);border-radius:8px;font-weight:700;color:var(--muted);cursor:pointer}
+.dove input:checked+span{border-color:var(--accent);color:var(--accent);background:var(--dis-bg)}
+.dove input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.qty{display:flex;align-items:center;gap:2px;flex:none}
+.qty button{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--accent);background:transparent;color:var(--accent);font-size:20px;line-height:1;padding:0}
+.qty button:disabled{opacity:.35;cursor:default}
+.qty output{min-width:28px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -59,6 +71,16 @@ textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:
     <label><input type="checkbox" id="nascondi"> Nascondi già presi</label>
   </div>
   <textarea id="ta" readonly hidden aria-label="Testo da copiare"></textarea>
+
+  <form class="card add" id="form" autocomplete="off">
+    <input id="nome" type="text" maxlength="80" placeholder="Aggiungi un prodotto…" aria-label="Nome del prodotto" enterkeyhint="done">
+    <div class="dove" role="radiogroup" aria-label="Dove aggiungerlo">
+      <label><input type="radio" name="dove" value="casa" checked><span>Casa</span></label>
+      <label><input type="radio" name="dove" value="dispensa"><span>Dispensa</span></label>
+    </div>
+    <button class="btn" type="submit">Aggiungi</button>
+  </form>
+  <p class="note" id="esito" role="status" hidden></p>
 
   <div class="card"><ul id="lista"></ul></div>
   <p class="note" id="avviso" hidden></p>
@@ -135,12 +157,18 @@ textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:
     return scorteCasa.filter(s => num(s.quantita, 0) <= SOGLIA_CASA && !conVoce.has(s.id));
   }
 
+  // Quantità da comprare della riga: quella della Dispensa se c'è, altrimenti quella di Casa.
+  function qtaRiga(r) {
+    if (r.dis) return typeof r.dis.n === 'number' && r.dis.n > 0 ? r.dis.n : 1;
+    return Math.max(1, num(r.cas.quantita, 1));
+  }
+  const unitaRiga = r => (r.dis && r.dis.unita) || (r.cas && r.cas.unita) || '';
+
   function dettaglio(r) {
     const p = [];
-    if (r.dis && typeof r.dis.n === 'number') p.push(fmtN(r.dis.n) + (r.dis.unita ? ' ' + r.dis.unita : ''));
+    if (unitaRiga(r)) p.push(unitaRiga(r));
     if (r.cas) {
       const s = scorteCasa.find(y => y.id === r.cas.scortaId);
-      p.push('da prendere: ' + num(r.cas.quantita, 1) + (r.cas.unita ? ' ' + r.cas.unita : ''));
       if (s) p.push('in casa: ' + num(s.quantita, 0));
     }
     return p;
@@ -168,7 +196,17 @@ textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:
       if (r.dis) { const t = document.createElement('span'); t.className = 'tag dis'; t.textContent = 'Dispensa'; meta.appendChild(t); }
       if (r.cas) { const t = document.createElement('span'); t.className = 'tag cas'; t.textContent = 'Casa'; meta.appendChild(t); }
       dettaglio(r).forEach(x => { const s = document.createElement('span'); s.textContent = x; meta.appendChild(s); });
-      body.append(nm, meta); li.append(cb, body); ul.appendChild(li);
+      const q = qtaRiga(r);
+      const qty = document.createElement('div'); qty.className = 'qty';
+      const meno = document.createElement('button'); meno.type = 'button'; meno.textContent = '−';
+      meno.setAttribute('aria-label', 'Diminuisci ' + r.nome); meno.disabled = r.preso || q <= 1;
+      meno.addEventListener('click', () => cambiaQta(r, -1));
+      const out = document.createElement('output'); out.textContent = fmtN(q);
+      const piu = document.createElement('button'); piu.type = 'button'; piu.textContent = '+';
+      piu.setAttribute('aria-label', 'Aumenta ' + r.nome); piu.disabled = r.preso;
+      piu.addEventListener('click', () => cambiaQta(r, 1));
+      qty.append(meno, out, piu);
+      body.append(nm, meta); li.append(cb, body, qty); ul.appendChild(li);
     });
     const senza = stato.casa.s === 'ok' ? scorteSenzaVoce() : [];
     $('avviso').hidden = !senza.length;
@@ -190,6 +228,69 @@ textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:
       if (s && s.exists) t.update(rifS, { quantita: Math.max(0, num(s.data().quantita, 0) + (comprato ? 1 : -1) * num(x.quantita, 1)) });
     }).catch(erroreSalva);
   }
+
+  // Cambia la quantità da comprare: si scrive in tutte le fonti della riga. In Casa auto:false, come fa Casa
+  // quando la quantità la scegli tu (altrimenti seguirebbe da sola la scorta).
+  function cambiaQta(r, delta) {
+    const q = Math.max(1, Math.round((qtaRiga(r) + delta) * 100) / 100);
+    if (q === qtaRiga(r)) return;
+    if (r.dis) {
+      r.dis.n = q;
+      if (dbDis) dbDis.collection('spesa').doc(r.dis.id).update({ n: q }).catch(erroreSalva);
+    }
+    if (r.cas && !r.cas.comprato) {
+      r.cas.quantita = q; r.cas.auto = false;
+      if (dbCasa) dbCasa.collection('spesa').doc(r.cas.id).update({ quantita: q, auto: false }).catch(erroreSalva);
+    }
+    render();
+  }
+
+  let esitoTimer = null;
+  function esito(msg) {
+    const e = $('esito'); e.textContent = msg; e.hidden = !msg;
+    clearTimeout(esitoTimer); if (msg) esitoTimer = setTimeout(() => esito(''), 4000);
+  }
+
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const adesso = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+
+  // Aggiunge un prodotto (1 pezzo) alla lista di Casa o della Dispensa, senza doppioni: se c'è già, ne aggiunge uno.
+  async function aggiungi(nome, dove) {
+    const k = norm(nome);
+    if (dove === 'dispensa') {
+      if (!dbDis) throw new Error('Accedi prima alla Dispensa');
+      const col = dbDis.collection('spesa');
+      const es = spesaDis.find(s => norm(s.nome) === k);
+      if (es && !es.nascosto) return col.doc(es.id).update({ n: (typeof es.n === 'number' && es.n > 0 ? es.n : 1) + 1 });
+      if (es) return col.doc(es.id).update({ nascosto: false, preso: false, n: 1 });
+      return col.add({ nome, n: 1, unita: 'pz', tipo: '', aggiunto: new Date().toISOString(), preso: false });
+    }
+    if (!dbCasa) throw new Error('Accedi prima a Casa');
+    const col = dbCasa.collection('spesa');
+    const scorta = scorteCasa.find(s => norm(s.nome) === k);
+    const es = spesaCasa.find(x => !x.comprato && (scorta ? x.scortaId === scorta.id : norm(x.nome) === k));
+    if (es && es.tolto) return col.doc(es.id).update({ tolto: firebase.firestore.FieldValue.delete(), quantita: 1, auto: false });
+    if (es) return col.doc(es.id).update({ quantita: Math.max(1, num(es.quantita, 1)) + 1, auto: false });
+    const id = uid();
+    return col.doc(id).set({ id, nome: scorta ? scorta.nome : nome, quantita: 1, unita: scorta ? (scorta.unita || '') : '',
+      comprato: false, scortaId: scorta ? scorta.id : '', creataIl: adesso() });
+  }
+
+  try { const d = localStorage.getItem('spesa.dove'); if (d) document.querySelector('input[name=dove][value=' + d + ']').checked = true; } catch (e) {}
+  $('form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const nome = $('nome').value.trim();
+    const dove = document.querySelector('input[name=dove]:checked').value;
+    if (!nome) { $('nome').focus(); return; }
+    try { localStorage.setItem('spesa.dove', dove); } catch (x) {}
+    try {
+      await aggiungi(nome, dove);
+      $('nome').value = '';
+      esito('Aggiunto a ' + FONTI[dove].nome + ': ' + nome);
+    } catch (err) {
+      esito(err && err.code === 'permission-denied' ? 'Non ho il permesso di scrivere in ' + FONTI[dove].nome : (err && err.message) || 'Non sono riuscito ad aggiungerlo');
+    }
+  });
 
   function segna(r, preso) {
     if (r.cas) segnaCasa(r.cas, preso);
@@ -265,8 +366,8 @@ textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:
 
   $('copia').addEventListener('click', async () => {
     const testo = 'Lista della spesa\n' + righe().filter(r => !r.preso).map(r => {
-      const q = r.dis && typeof r.dis.n === 'number' ? ' (' + fmtN(r.dis.n) + (r.dis.unita ? ' ' + r.dis.unita : '') + ')' : '';
-      return '- ' + r.nome + q;
+      const u = unitaRiga(r);
+      return '- ' + r.nome + ' (' + fmtN(qtaRiga(r)) + (u ? ' ' + u : '') + ')';
     }).join('\n');
     const ta = $('ta');
     try { await navigator.clipboard.writeText(testo); $('copia').textContent = 'Copiata ✓'; setTimeout(() => $('copia').textContent = 'Copia per Note', 1800); }
