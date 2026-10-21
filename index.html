@@ -44,7 +44,6 @@ li.done .nm{text-decoration:line-through;color:var(--muted)}
 .actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .actions label{font-size:14px;color:var(--muted);display:flex;gap:6px;align-items:center;margin-left:auto}
 .actions label input{width:18px;height:18px;accent-color:var(--accent)}
-textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;padding:10px}
 .note{font-size:13px;color:var(--muted)}
 .add{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px;align-items:center}
 .add input[type=text]{flex:1 1 100%;min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;padding:0 12px}
@@ -67,10 +66,8 @@ textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:
   <div class="card" id="fonti" aria-label="Stato delle liste collegate"></div>
 
   <div class="actions">
-    <button class="btn" id="copia" type="button">Copia per Note</button>
     <label><input type="checkbox" id="nascondi"> Nascondi già presi</label>
   </div>
-  <textarea id="ta" readonly hidden aria-label="Testo da copiare"></textarea>
 
   <form class="card add" id="form" autocomplete="off">
     <input id="nome" type="text" maxlength="80" placeholder="Aggiungi un prodotto…" aria-label="Nome del prodotto" enterkeyhint="done">
@@ -362,16 +359,6 @@ textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:
     nascondi = e.target.checked;
     try { localStorage.setItem('spesa.nascondi', nascondi ? '1' : '0'); } catch (x) {}
     render();
-  });
-
-  $('copia').addEventListener('click', async () => {
-    const testo = 'Lista della spesa\n' + righe().filter(r => !r.preso).map(r => {
-      const u = unitaRiga(r);
-      return '- ' + r.nome + ' (' + fmtN(qtaRiga(r)) + (u ? ' ' + u : '') + ')';
-    }).join('\n');
-    const ta = $('ta');
-    try { await navigator.clipboard.writeText(testo); $('copia').textContent = 'Copiata ✓'; setTimeout(() => $('copia').textContent = 'Copia per Note', 1800); }
-    catch (e) { ta.value = testo; ta.hidden = false; ta.select(); }
   });
 
   if (!window.firebase) {
