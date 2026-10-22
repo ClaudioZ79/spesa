@@ -5,93 +5,152 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Spesa">
-<meta name="theme-color" content="#1f6f78">
+<meta name="theme-color" content="#f2f2f7">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <title>Spesa</title>
 <style>
-:root{--bg:#eef2f3;--panel:#fff;--ink:#1b2528;--muted:#5b686c;--line:#d5dde0;--accent:#1f6f78;--dis:#1f6f78;--dis-bg:#e1f1f2;--cas:#8a5a00;--cas-bg:#fff3d6;--bad:#b3261e;color-scheme:light dark}
-@media (prefers-color-scheme:dark){:root{--bg:#121819;--panel:#1b2325;--ink:#e6eeef;--muted:#9aa9ad;--line:#2c3a3d;--accent:#6cc3cc;--dis:#6cc3cc;--dis-bg:#17383c;--cas:#f2c360;--cas-bg:#352a12;--bad:#ff8a80}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
-.wrap{max-width:640px;margin:0 auto;padding:20px 16px 80px;display:grid;gap:16px}
-header{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
-h1{margin:0;font-size:28px;letter-spacing:-.01em}
-.count{font-size:15px;color:var(--muted);font-variant-numeric:tabular-nums}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.src{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:14px}
-.src:last-child{border-bottom:0}
-.src .st{color:var(--muted)}
-.src .st.ok{color:var(--accent)}
-.src .st.err{color:var(--bad)}
-button{font:inherit;color:inherit;cursor:pointer}
-.btn{background:var(--accent);color:var(--panel);border:0;border-radius:8px;padding:0 14px;min-height:40px;font-weight:700}
-.btn.ghost{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
-.btn.small{min-height:32px;padding:0 10px;font-size:13px}
-ul{list-style:none;margin:0;padding:0}
-li{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid var(--line)}
-li:first-child{border-top:0}
-li input{width:24px;height:24px;flex:none;accent-color:var(--accent)}
-li .body{flex:1;min-width:0}
-li .nm{font-weight:700;overflow-wrap:anywhere}
-li.done .nm{text-decoration:line-through;color:var(--muted)}
-.meta{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:3px;font-size:13px;color:var(--muted)}
-.tag{font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px}
-.tag.dis{background:var(--dis-bg);color:var(--dis)}
-.tag.cas{background:var(--cas-bg);color:var(--cas)}
-.empty{padding:22px 14px;color:var(--muted);text-align:center}
-.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.actions label{font-size:14px;color:var(--muted);display:flex;gap:6px;align-items:center;margin-left:auto}
-.actions label input{width:18px;height:18px;accent-color:var(--accent)}
-.note{font-size:13px;color:var(--muted)}
-.add{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px;align-items:center}
-.add input[type=text]{flex:1 1 100%;min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;padding:0 12px}
-.dove{display:flex;flex:1;gap:6px}
-.dove label{flex:1}
-.dove input{position:absolute;opacity:0;pointer-events:none}
-.dove span{display:block;text-align:center;padding:8px 10px;border:1.5px solid var(--line);border-radius:8px;font-weight:700;color:var(--muted);cursor:pointer}
-.dove input:checked+span{border-color:var(--accent);color:var(--accent);background:var(--dis-bg)}
-.dove input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
-.qty{display:flex;align-items:center;gap:2px;flex:none}
-.qty button{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--accent);background:transparent;color:var(--accent);font-size:20px;line-height:1;padding:0}
-.qty button:disabled{opacity:.35;cursor:default}
-.qty output{min-width:28px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+/* Stesso aspetto e stessi pulsanti della lista della spesa dell'app Casa */
+:root {
+  --bg: #f2f2f7; --card: rgba(255, 255, 255, .72); --text: #000; --sec: #8e8e93;
+  --accent: #007aff; --red: #ff3b30; --orange: #ff9500; --sep: rgba(60, 60, 67, .18); --r: 18px;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #000; --card: rgba(44, 44, 46, .7); --text: #fff; --sep: rgba(84, 84, 88, .6); }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 17px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  padding-top: env(safe-area-inset-top); padding-bottom: calc(40px + env(safe-area-inset-bottom));
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+input, select { font: inherit; color: inherit; }
+.wrap { max-width: 640px; margin: 0 auto; padding: 8px 16px; }
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+h1 { font-size: 34px; font-weight: 700; margin: 12px 0 4px; }
+h2 { font-size: 20px; font-weight: 700; margin: 22px 4px 8px; }
+.count, .sec { color: var(--sec); font-size: 14px; }
+.sec { margin: 0 4px 8px; }
+.note { color: var(--sec); font-size: 13px; margin: 0 4px 8px; }
+.card {
+  background: var(--card); -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
+  border: .5px solid rgba(255, 255, 255, .4); border-radius: var(--r); box-shadow: 0 2px 12px rgba(0, 0, 0, .06);
+  padding: 4px 14px; margin-bottom: 12px;
+}
+
+/* Righe della lista */
+.riga { display: flex; align-items: center; gap: 10px; padding: 11px 0; min-height: 44px; }
+.riga + .riga { border-top: .5px solid var(--sep); }
+.titolo { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.titolo small { display: block; color: var(--sec); font-size: 13px; }
+.check {
+  width: 26px; height: 26px; flex: none; border-radius: 50%; padding: 0;
+  border: 2px solid var(--accent); background: none;
+  display: grid; place-items: center; color: #fff; font-weight: 700;
+}
+.fatta .check { background: var(--accent); }
+.fatta .titolo { color: var(--sec); }
+.fatta .testo { text-decoration: line-through; } /* barrato solo il nome, non le scritte sotto */
+.modificabile { border: 0; background: none; padding: 0; margin: 0; font: inherit; color: inherit; text-align: left; cursor: text; }
+.tondo {
+  width: 32px; height: 32px; flex: none; border: 0; border-radius: 50%; padding: 0;
+  background: rgba(120, 120, 128, .16); font-size: 20px; line-height: 1;
+  display: grid; place-items: center;
+}
+.tondo.primo { background: var(--accent); color: #fff; }
+.tondo:disabled { opacity: .35; cursor: default; }
+.qta { min-width: 28px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+.del { border: 0; background: none; color: var(--red); font-size: 22px; padding: 4px 8px; line-height: 1; }
+.link { display: block; margin: 0 4px 12px; padding: 0; border: 0; background: none; color: var(--accent); }
+.link.rosso { color: var(--red); }
+.vuoto { color: var(--sec); margin: 6px 0; padding: 12px 0; }
+.tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; margin-right: 4px; }
+.tag.dis { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+.tag.cas { background: color-mix(in srgb, var(--orange) 18%, transparent); color: var(--orange); }
+
+/* Correzione del nome */
+.riga.modifica { flex-wrap: wrap; gap: 8px; }
+.modifica input {
+  flex: 1 1 150px; min-width: 0; border: 0; border-radius: 12px; padding: 10px 12px;
+  background: rgba(120, 120, 128, .12);
+}
+.primario { background: var(--accent); color: #fff; border: 0; border-radius: 12px; padding: 12px; font-weight: 600; }
+.primario.piccolo { padding: 10px 16px; }
+
+/* Modulo "Aggiungi alla lista" */
+.form { display: flex; flex-direction: column; gap: 10px; padding: 14px; }
+.form input[type=text], .form input[type=number], .form select {
+  width: 100%; border: 0; border-radius: 12px; padding: 12px; background: rgba(120, 120, 128, .12);
+}
+.campo { display: flex; flex-direction: column; gap: 4px; }
+.campo > span { font-size: 13px; color: var(--sec); padding-left: 4px; }
+.due { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.dove { display: flex; gap: 8px; }
+.dove label { flex: 1; position: relative; }
+.dove input { position: absolute; opacity: 0; pointer-events: none; }
+.dove span {
+  display: block; text-align: center; padding: 9px 12px; border-radius: 999px;
+  background: rgba(120, 120, 128, .12); color: var(--sec); font-weight: 500; cursor: pointer;
+}
+.dove input:checked + span { background: var(--accent); color: #fff; }
+.dove input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Stato delle liste collegate */
+.src { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; font-size: 15px; min-height: 44px; }
+.src + .src { border-top: .5px solid var(--sep); }
+.src .st { color: var(--sec); text-align: right; }
+.src .st.ok { color: var(--accent); }
+.src .st.err { color: var(--red); }
+.accedi {
+  border: 0; border-radius: 999px; padding: 7px 14px; min-height: 34px; font-size: 13px; font-weight: 500;
+  background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent);
+}
 </style>
 </head>
 <body>
-<div class="wrap">
+<main class="wrap">
   <header><h1>Spesa</h1><span class="count" id="count"></span></header>
 
   <div class="card" id="fonti" aria-label="Stato delle liste collegate"></div>
 
-  <div class="actions">
-    <label><input type="checkbox" id="nascondi"> Nascondi già presi</label>
-  </div>
+  <div id="lista"></div>
 
-  <form class="card add" id="form" autocomplete="off">
-    <input id="nome" type="text" maxlength="80" placeholder="Aggiungi un prodotto…" aria-label="Nome del prodotto" enterkeyhint="done">
+  <h2 style="margin-top:0">Aggiungi alla lista</h2>
+  <form class="card form" id="form" autocomplete="off">
+    <label class="campo"><span>Cosa devi comprare</span>
+      <input id="nome" type="text" list="suggerimenti" maxlength="80" placeholder="Es. Latte" enterkeyhint="done"></label>
+    <datalist id="suggerimenti"></datalist>
+    <div class="due">
+      <label class="campo"><span>Quanti</span>
+        <input id="qta" type="number" inputmode="decimal" min="0" step="any" value="1"></label>
+      <label class="campo"><span>Unità</span>
+        <select id="unita"><option>pz</option><option>g</option><option>kg</option><option>ml</option><option>L</option></select></label>
+    </div>
     <div class="dove" role="radiogroup" aria-label="Dove aggiungerlo">
       <label><input type="radio" name="dove" value="casa" checked><span>Dispensa</span></label>
       <label><input type="radio" name="dove" value="dispensa"><span>Frigo</span></label>
     </div>
-    <button class="btn" type="submit">Aggiungi</button>
+    <button class="primario" type="submit">Aggiungi alla lista</button>
   </form>
   <p class="note" id="esito" role="status" hidden></p>
 
-  <div class="card"><ul id="lista"></ul></div>
-  <p class="note" id="avviso" hidden></p>
   <p class="note">Unisce la lista della Dispensa e la lista della spesa di Casa. Gli articoli presenti in entrambe compaiono una volta sola. La spunta si salva nell'app di origine; spuntare un articolo di Casa ne aumenta anche la scorta, come fa Casa.</p>
-</div>
+</main>
 
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.5/firebase-app-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.5/firebase-firestore-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.5/firebase-auth-compat.js"></script>
 <script>
 (() => {
-  // Configurazioni pubbliche dei due progetti Firebase: la protezione sono le regole dei database.
+  // Configurazioni pubbliche dei due progetti Firebase: la protezione sono le regole dei database,
+  // che lasciano entrare solo le persone autorizzate (non servono elenchi di email qui).
   const SOGLIA_CASA = 2;
-  const EMAIL = ['utente1@example.com', 'utente2@example.com'];
   const FONTI = {
     dispensa: { nome: 'Dispensa', cfg: {
       apiKey: 'AIzaSyAgrmFh3Rdh4i3TubltgfY50h-Vw9SyV-w', authDomain: 'dispensa-e3c52.firebaseapp.com',
@@ -106,15 +165,23 @@ li.done .nm{text-decoration:line-through;color:var(--muted)}
   const $ = id => document.getElementById(id);
   const norm = s => String(s || '').trim().toLowerCase();
   const fmtN = n => String(Math.round(n * 100) / 100).replace('.', ',');
-  const stato = { dispensa: { s: 'carico', msg: '' }, casa: { s: 'carico', msg: '' } };
-  let spesaDis = [], spesaCasa = [], scorteCasa = [];
-  let nascondi = false;
-  let dbDis = null, dbCasa = null;
-
-  try { nascondi = localStorage.getItem('spesa.nascondi') === '1'; } catch (e) {}
-  $('nascondi').checked = nascondi;
-
+  const escH = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const num = (v, d) => { const n = parseInt(v, 10); return Number.isFinite(n) ? n : d; };
+  const stato = { dispensa: { s: 'carico', msg: '' }, casa: { s: 'carico', msg: '' } };
+  const avviso = { dispensa: '', casa: '' };   // es. "Account non autorizzato" accanto al pulsante di accesso
+  let spesaDis = [], spesaCasa = [], scorteCasa = [];
+  let dbDis = null, dbCasa = null;
+  let modificaK = null;     // riga di cui stai correggendo il nome (chiave = nome in minuscolo)
+  let modificaTesto;        // testo scritto finora: un aggiornamento in arrivo non lo cancella
+  let rimandato = false;    // il ridisegno aspetta finché scrivi nel campo del nome
+
+  // Passo dei pulsanti − e +: come in Dispensa per peso e volume; le voci di Casa restano a numeri interi.
+  function stepFor(u) {
+    const x = String(u || '').toLowerCase();
+    if (x === 'g' || x === 'ml') return 50;
+    if (x === 'kg' || x === 'l') return 0.5;
+    return 1;
+  }
 
   // Voci della lista di Casa: quelle da comprare e quelle già comprate; le "tolte" a mano restano nascoste.
   // Per ogni nome si tiene una sola voce: quella ancora aperta, altrimenti l'ultima comprata.
@@ -131,11 +198,11 @@ li.done .nm{text-decoration:line-through;color:var(--muted)}
   function righe() {
     const mappa = new Map();
     spesaDis.filter(s => !s.nascosto).forEach(s => {
-      mappa.set(norm(s.nome), { nome: s.nome, dis: s, cas: null });
+      mappa.set(norm(s.nome), { k: norm(s.nome), nome: s.nome, dis: s, cas: null });
     });
     vociCasa().forEach((x, k) => {
       const r = mappa.get(k);
-      if (r) r.cas = x; else mappa.set(k, { nome: x.nome, dis: null, cas: x });
+      if (r) r.cas = x; else mappa.set(k, { k, nome: x.nome, dis: null, cas: x });
     });
     const out = [...mappa.values()].map(r => {
       // "preso" vale solo se tutte le fonti presenti lo dicono
@@ -149,9 +216,10 @@ li.done .nm{text-decoration:line-through;color:var(--muted)}
   }
 
   // Scorte basse che in Casa non hanno ancora una voce: compaiono quando si apre l'app Casa.
+  // Quelle escluse in Casa con "Non aggiungere" non vanno proposte.
   function scorteSenzaVoce() {
     const conVoce = new Set(spesaCasa.map(x => x.scortaId).filter(Boolean));
-    return scorteCasa.filter(s => num(s.quantita, 0) <= SOGLIA_CASA && !conVoce.has(s.id));
+    return scorteCasa.filter(s => num(s.quantita, 0) <= SOGLIA_CASA && !s.nonInLista && !conVoce.has(s.id));
   }
 
   // Quantità da comprare della riga: quella della Dispensa se c'è, altrimenti quella di Casa.
@@ -160,6 +228,7 @@ li.done .nm{text-decoration:line-through;color:var(--muted)}
     return Math.max(1, num(r.cas.quantita, 1));
   }
   const unitaRiga = r => (r.dis && r.dis.unita) || (r.cas && r.cas.unita) || '';
+  const stepRiga = r => (r.dis ? stepFor(unitaRiga(r)) : 1);
 
   function dettaglio(r) {
     const p = [];
@@ -171,47 +240,66 @@ li.done .nm{text-decoration:line-through;color:var(--muted)}
     return p;
   }
 
-  function render() {
-    const tutte = righe();
-    const aperte = tutte.filter(r => !r.preso).length;
-    $('count').textContent = aperte + (aperte === 1 ? ' da comprare' : ' da comprare');
-    const ul = $('lista'); ul.replaceChildren();
-    const mostra = nascondi ? tutte.filter(r => !r.preso) : tutte;
-    if (!mostra.length) {
-      const li = document.createElement('li'); li.className = 'empty'; li.style.display = 'block';
-      li.textContent = (stato.dispensa.s === 'ok' || stato.casa.s === 'ok') ? 'Niente da comprare per ora.' : 'Accedi per vedere le liste.';
-      ul.appendChild(li);
+  function htmlRiga(r) {
+    const k = escH(r.k);
+    if (modificaK === r.k) {
+      const v = modificaTesto !== undefined ? modificaTesto : r.nome;
+      return `<form class="riga modifica" data-k="${k}">
+        <input name="testo" value="${escH(v)}" maxlength="80" required autocomplete="off" aria-label="Nuovo nome">
+        <button class="primario piccolo" type="submit">Salva</button>
+        <button class="link" type="button" data-az="annulla-nome">Annulla</button>
+      </form>`;
     }
-    mostra.forEach(r => {
-      const li = document.createElement('li'); if (r.preso) li.className = 'done';
-      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = r.preso;
-      cb.setAttribute('aria-label', 'Preso: ' + r.nome);
-      cb.addEventListener('change', () => segna(r, cb.checked));
-      const body = document.createElement('div'); body.className = 'body';
-      const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = r.nome;
-      const meta = document.createElement('div'); meta.className = 'meta';
-      if (r.dis) { const t = document.createElement('span'); t.className = 'tag dis'; t.textContent = 'Dispensa'; meta.appendChild(t); }
-      if (r.cas) { const t = document.createElement('span'); t.className = 'tag cas'; t.textContent = 'Casa'; meta.appendChild(t); }
-      dettaglio(r).forEach(x => { const s = document.createElement('span'); s.textContent = x; meta.appendChild(s); });
-      const q = qtaRiga(r);
-      const qty = document.createElement('div'); qty.className = 'qty';
-      const meno = document.createElement('button'); meno.type = 'button'; meno.textContent = '−';
-      meno.setAttribute('aria-label', 'Diminuisci ' + r.nome); meno.disabled = r.preso || q <= 1;
-      meno.addEventListener('click', () => cambiaQta(r, -1));
-      const out = document.createElement('output'); out.textContent = fmtN(q);
-      const piu = document.createElement('button'); piu.type = 'button'; piu.textContent = '+';
-      piu.setAttribute('aria-label', 'Aumenta ' + r.nome); piu.disabled = r.preso;
-      piu.addEventListener('click', () => cambiaQta(r, 1));
-      qty.append(meno, out, piu);
-      body.append(nm, meta); li.append(cb, body, qty); ul.appendChild(li);
-    });
+    const q = qtaRiga(r);
+    const meta = [];
+    if (r.dis) meta.push('<span class="tag dis">Dispensa</span>');
+    if (r.cas) meta.push('<span class="tag cas">Casa</span>');
+    dettaglio(r).forEach(x => meta.push('<span style="white-space:nowrap">' + escH(x) + '</span>'));
+    const controllo = r.preso
+      ? `<span class="qta">× ${fmtN(q)}</span>`
+      : `<button class="tondo" data-az="meno" data-k="${k}" ${q - stepRiga(r) < stepRiga(r) ? 'disabled' : ''} aria-label="Diminuisci ${escH(r.nome)}">−</button>
+        <span class="qta">${fmtN(q)}</span>
+        <button class="tondo primo" data-az="piu" data-k="${k}" aria-label="Aumenta ${escH(r.nome)}">+</button>`;
+    return `<div class="riga ${r.preso ? 'fatta' : ''}">
+      <button class="check" data-az="check" data-k="${k}" aria-label="${r.preso ? 'Rimetti in lista' : 'Segna come preso'}: ${escH(r.nome)}">${r.preso ? '✓' : ''}</button>
+      <span class="titolo"><button class="testo modificabile" data-az="nome" data-k="${k}" aria-label="Correggi il nome: ${escH(r.nome)}">${escH(r.nome)}</button><small>${meta.join(' ')}</small></span>
+      ${controllo}
+      <button class="del" data-az="togli" data-k="${k}" aria-label="Togli dalla lista: ${escH(r.nome)}">×</button>
+    </div>`;
+  }
+
+  // Voci tolte a mano (nascoste ma ricordate) nelle due liste
+  const tolteDis = () => spesaDis.filter(s => s.nascosto && !s.preso);
+  const tolteCasa = () => spesaCasa.filter(x => x.tolto && !x.comprato);
+
+  function render(forza) {
+    const a = document.activeElement;
+    if (!forza && a && a.closest && a.closest('#lista form.modifica')) { rimandato = true; return; }
+    rimandato = false;
+    const tutte = righe();
+    if (modificaK && !tutte.some(r => r.k === modificaK)) modificaK = null; // la riga è sparita altrove
+    const aperte = tutte.filter(r => !r.preso);
+    const prese = tutte.filter(r => r.preso);
+    const tolte = tolteDis().length + tolteCasa().length;
+    const connesso = stato.dispensa.s === 'ok' || stato.casa.s === 'ok';
     const senza = stato.casa.s === 'ok' ? scorteSenzaVoce() : [];
-    $('avviso').hidden = !senza.length;
-    if (senza.length) $('avviso').textContent = 'Scorte basse non ancora in lista (' + senza.map(s => s.nome).join(', ') + '): apri l\'app Casa per aggiungerle.';
+    $('count').textContent = aperte.length + ' da comprare';
+    $('lista').innerHTML = `
+      <p class="sec">Tocca il cerchio quando un articolo è nel carrello, il nome per correggerlo, la × per toglierlo dalla lista.</p>
+      <h2 style="margin-top:8px">Da comprare</h2>
+      <div class="card">${aperte.length ? aperte.map(htmlRiga).join('') : `<p class="vuoto">${connesso ? 'Niente da comprare. 🎉' : 'Accedi per vedere le liste.'}</p>`}</div>
+      ${aperte.length ? '<button class="link" data-az="condividi">Condividi o copia la lista</button>' : ''}
+      ${tolte ? `<button class="link" data-az="rimetti">Rimetti le voci tolte (${tolte})</button>` : ''}
+      ${prese.length ? `<h2>Nel carrello</h2>
+        <div class="card">${prese.map(htmlRiga).join('')}</div>
+        <button class="link rosso" data-az="svuota">Svuota i comprati</button>` : ''}
+      ${senza.length ? `<p class="note">Scorte basse non ancora in lista (${escH(senza.map(s => s.nome).join(', '))}): apri l'app Casa per aggiungerle.</p>` : ''}`;
+    const nomi = new Set(scorteCasa.map(s => s.nome));
+    $('suggerimenti').innerHTML = [...nomi].sort((p, q) => p.localeCompare(q, 'it')).map(n => `<option value="${escH(n)}"></option>`).join('');
     renderFonti();
   }
 
-  const erroreSalva = () => { $('count').textContent = 'Non sono riuscito a salvare la spunta'; };
+  const erroreSalva = () => { $('count').textContent = 'Non sono riuscito a salvare'; };
 
   // Come in Casa: comprare una voce nata da una scorta ne aumenta la quantità, togliere la spunta la riporta indietro.
   function segnaCasa(x, comprato) {
@@ -226,20 +314,110 @@ li.done .nm{text-decoration:line-through;color:var(--muted)}
     }).catch(erroreSalva);
   }
 
+  function segna(r, preso) {
+    if (r.cas) segnaCasa(r.cas, preso);
+    if (r.dis) {
+      r.dis.preso = preso;
+      if (dbDis) dbDis.collection('spesa').doc(r.dis.id).update({ preso }).catch(erroreSalva);
+    }
+    render(true);
+  }
+
   // Cambia la quantità da comprare: si scrive in tutte le fonti della riga. In Casa auto:false, come fa Casa
   // quando la quantità la scegli tu (altrimenti seguirebbe da sola la scorta).
-  function cambiaQta(r, delta) {
-    const q = Math.max(1, Math.round((qtaRiga(r) + delta) * 100) / 100);
+  function cambiaQta(r, verso) {
+    const step = stepRiga(r);
+    const q = Math.max(step, Math.round((qtaRiga(r) + verso * step) * 100) / 100);
     if (q === qtaRiga(r)) return;
     if (r.dis) {
       r.dis.n = q;
       if (dbDis) dbDis.collection('spesa').doc(r.dis.id).update({ n: q }).catch(erroreSalva);
     }
     if (r.cas && !r.cas.comprato) {
-      r.cas.quantita = q; r.cas.auto = false;
-      if (dbCasa) dbCasa.collection('spesa').doc(r.cas.id).update({ quantita: q, auto: false }).catch(erroreSalva);
+      const qc = Math.max(1, Math.round(q));
+      r.cas.quantita = qc; r.cas.auto = false;
+      if (dbCasa) dbCasa.collection('spesa').doc(r.cas.id).update({ quantita: qc, auto: false }).catch(erroreSalva);
     }
-    render();
+    render(true);
+  }
+
+  // Toglie una voce dalla Dispensa: quelle automatiche si nascondono (così non ricompaiono), le altre si cancellano.
+  function togliDis(s) {
+    if (String(s.id).startsWith('auto-')) {
+      s.nascosto = true;
+      if (dbDis) dbDis.collection('spesa').doc(s.id).update({ nascosto: true }).catch(erroreSalva);
+    } else {
+      spesaDis = spesaDis.filter(x => x.id !== s.id);
+      if (dbDis) dbDis.collection('spesa').doc(s.id).delete().catch(erroreSalva);
+    }
+  }
+  // Toglie una voce da Casa: se nasce da una scorta ancora bassa si nasconde ("tolto"), altrimenti si cancella.
+  function togliCas(x) {
+    const scorta = x.scortaId ? scorteCasa.find(y => y.id === x.scortaId) : null;
+    if (!x.comprato && scorta && num(scorta.quantita, 0) <= SOGLIA_CASA) {
+      x.tolto = true;
+      if (dbCasa) dbCasa.collection('spesa').doc(x.id).update({ tolto: true }).catch(erroreSalva);
+    } else {
+      spesaCasa = spesaCasa.filter(y => y.id !== x.id);
+      if (dbCasa) dbCasa.collection('spesa').doc(x.id).delete().catch(erroreSalva);
+    }
+  }
+  function togli(r) {
+    if (r.dis) togliDis(r.dis);
+    if (r.cas) togliCas(r.cas);
+    render(true);
+  }
+  function svuotaPresi() {
+    righe().filter(r => r.preso).forEach(r => { if (r.dis) togliDis(r.dis); if (r.cas) togliCas(r.cas); });
+    render(true);
+  }
+  function rimettiTolte() {
+    tolteDis().forEach(s => {
+      s.nascosto = false;
+      if (dbDis) dbDis.collection('spesa').doc(s.id).update({ nascosto: false }).catch(erroreSalva);
+    });
+    tolteCasa().forEach(x => {
+      delete x.tolto;
+      if (dbCasa) dbCasa.collection('spesa').doc(x.id).update({ tolto: firebase.firestore.FieldValue.delete() }).catch(erroreSalva);
+    });
+    render(true);
+  }
+
+  // Cambia il nome della riga in tutte le fonti. In Casa una voce nata da una scorta cambia il nome della scorta
+  // (e di tutte le sue voci), come fa Casa; in Dispensa cambia solo la voce.
+  async function rinomina(r, nuovo) {
+    if (nuovo === r.nome) return;
+    const ops = [];
+    if (r.dis) {
+      r.dis.nome = nuovo;
+      if (dbDis) ops.push(dbDis.collection('spesa').doc(r.dis.id).update({ nome: nuovo }));
+    }
+    if (r.cas) {
+      const s = r.cas.scortaId ? scorteCasa.find(y => y.id === r.cas.scortaId) : null;
+      if (s) {
+        s.nome = nuovo;
+        if (dbCasa) ops.push(dbCasa.collection('scorte').doc(s.id).update({ nome: nuovo }));
+        spesaCasa.filter(x => x.scortaId === s.id).forEach(x => {
+          x.nome = nuovo;
+          if (dbCasa) ops.push(dbCasa.collection('spesa').doc(x.id).update({ nome: nuovo }));
+        });
+      } else {
+        r.cas.nome = nuovo;
+        if (dbCasa) ops.push(dbCasa.collection('spesa').doc(r.cas.id).update({ nome: nuovo }));
+      }
+    }
+    render(true);
+    try { await Promise.all(ops); } catch (e) { erroreSalva(); }
+  }
+
+  function condividi() {
+    const aperte = righe().filter(r => !r.preso);
+    if (!aperte.length) return;
+    const titolo = 'Lista della spesa';
+    const testo = titolo + '\n' + aperte.map(r => '- ' + r.nome + ' × ' + fmtN(qtaRiga(r)) + (unitaRiga(r) ? ' ' + unitaRiga(r) : '')).join('\n');
+    if (navigator.share) navigator.share({ title: titolo, text: testo }).catch(() => { /* annullato */ });
+    else if (navigator.clipboard) navigator.clipboard.writeText(testo).then(() => esito('Lista copiata.')).catch(() => esito('Copia non riuscita.'));
+    else esito('Condivisione non disponibile su questo dispositivo.');
   }
 
   let esitoTimer = null;
@@ -251,25 +429,26 @@ li.done .nm{text-decoration:line-through;color:var(--muted)}
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   const adesso = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 
-  // Aggiunge un prodotto (1 pezzo) alla lista di Casa o della Dispensa, senza doppioni: se c'è già, ne aggiunge uno.
-  async function aggiungi(nome, dove) {
+  // Aggiunge un prodotto alla lista di Casa o della Dispensa, senza doppioni: se c'è già, ne somma la quantità.
+  async function aggiungi(nome, dove, n, unita) {
     const k = norm(nome);
     if (dove === 'dispensa') {
       if (!dbDis) throw new Error('Accedi prima alla Dispensa');
       const col = dbDis.collection('spesa');
       const es = spesaDis.find(s => norm(s.nome) === k);
-      if (es && !es.nascosto) return col.doc(es.id).update({ n: (typeof es.n === 'number' && es.n > 0 ? es.n : 1) + 1 });
-      if (es) return col.doc(es.id).update({ nascosto: false, preso: false, n: 1 });
-      return col.add({ nome, n: 1, unita: 'pz', tipo: '', aggiunto: new Date().toISOString(), preso: false });
+      if (es && !es.nascosto) return col.doc(es.id).update({ n: Math.round(((typeof es.n === 'number' && es.n > 0 ? es.n : 1) + n) * 100) / 100 });
+      if (es) return col.doc(es.id).update({ nascosto: false, preso: false, n, unita });
+      return col.add({ nome, n, unita, tipo: '', aggiunto: new Date().toISOString(), preso: false });
     }
     if (!dbCasa) throw new Error('Accedi prima a Casa');
     const col = dbCasa.collection('spesa');
+    const nc = Math.max(1, Math.round(n)); // in Casa le quantità sono numeri interi
     const scorta = scorteCasa.find(s => norm(s.nome) === k);
     const es = spesaCasa.find(x => !x.comprato && (scorta ? x.scortaId === scorta.id : norm(x.nome) === k));
-    if (es && es.tolto) return col.doc(es.id).update({ tolto: firebase.firestore.FieldValue.delete(), quantita: 1, auto: false });
-    if (es) return col.doc(es.id).update({ quantita: Math.max(1, num(es.quantita, 1)) + 1, auto: false });
+    if (es && es.tolto) return col.doc(es.id).update({ tolto: firebase.firestore.FieldValue.delete(), quantita: nc, auto: false });
+    if (es) return col.doc(es.id).update({ quantita: Math.max(1, num(es.quantita, 1)) + nc, auto: false });
     const id = uid();
-    return col.doc(id).set({ id, nome: scorta ? scorta.nome : nome, quantita: 1, unita: scorta ? (scorta.unita || '') : '',
+    return col.doc(id).set({ id, nome: scorta ? scorta.nome : nome, quantita: nc, unita: scorta ? (scorta.unita || '') : unita,
       comprato: false, scortaId: scorta ? scorta.id : '', creataIl: adesso() });
   }
 
@@ -278,25 +457,63 @@ li.done .nm{text-decoration:line-through;color:var(--muted)}
     e.preventDefault();
     const nome = $('nome').value.trim();
     const dove = document.querySelector('input[name=dove]:checked').value;
+    let n = parseFloat(String($('qta').value).replace(',', '.'));
+    if (!isFinite(n) || n <= 0) n = 1;
     if (!nome) { $('nome').focus(); return; }
     try { localStorage.setItem('spesa.dove', dove); } catch (x) {}
     try {
-      await aggiungi(nome, dove);
-      $('nome').value = '';
+      await aggiungi(nome, dove, n, $('unita').value);
+      $('nome').value = ''; $('qta').value = '1';
       esito('Aggiunto a ' + FONTI[dove].nome + ': ' + nome);
     } catch (err) {
       esito(err && err.code === 'permission-denied' ? 'Non ho il permesso di scrivere in ' + FONTI[dove].nome : (err && err.message) || 'Non sono riuscito ad aggiungerlo');
     }
   });
 
-  function segna(r, preso) {
-    if (r.cas) segnaCasa(r.cas, preso);
-    if (r.dis) {
-      r.dis.preso = preso;
-      if (dbDis) dbDis.collection('spesa').doc(r.dis.id).update({ preso }).catch(erroreSalva);
+  // La lista si ridisegna a ogni aggiornamento, quindi pulsanti e correzione del nome stanno sul contenitore.
+  $('lista').addEventListener('click', e => {
+    const b = e.target.closest('[data-az]'); if (!b) return;
+    const r = b.dataset.k !== undefined ? righe().find(x => x.k === b.dataset.k) : null;
+    switch (b.dataset.az) {
+      case 'check': if (r) segna(r, !r.preso); break;
+      case 'meno': if (r) cambiaQta(r, -1); break;
+      case 'piu': if (r) cambiaQta(r, 1); break;
+      case 'togli': if (r) togli(r); break;
+      case 'nome':
+        if (!r) break;
+        modificaK = r.k; modificaTesto = undefined; render(true);
+        { const c = document.querySelector('#lista form.modifica input'); if (c) { c.focus(); c.setSelectionRange(c.value.length, c.value.length); } }
+        break;
+      case 'annulla-nome': modificaK = null; render(true); break;
+      case 'rimetti': rimettiTolte(); break;
+      case 'svuota': svuotaPresi(); break;
+      case 'condividi': condividi(); break;
+      default: break;
     }
-    render();
-  }
+  });
+  $('lista').addEventListener('submit', e => {
+    const f = e.target;
+    e.preventDefault();
+    if (!f.classList.contains('modifica')) return;
+    const nuovo = String(f.elements.testo.value || '').replace(/\s+/g, ' ').trim();
+    if (!nuovo) return; // il campo resta aperto
+    const r = righe().find(x => x.k === f.dataset.k);
+    modificaK = null;
+    if (r) rinomina(r, nuovo); else render(true);
+  });
+  // Mentre correggi un nome il testo si ricorda; se lasci il campo, il ridisegno rimandato parte.
+  $('lista').addEventListener('input', e => {
+    if (e.target.closest && e.target.closest('form.modifica')) modificaTesto = e.target.value;
+  });
+  $('lista').addEventListener('focusout', () => {
+    setTimeout(() => {
+      const a = document.activeElement;
+      if (rimandato && !(a && a.closest && a.closest('#lista form.modifica'))) render();
+    }, 150);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && modificaK) { modificaK = null; render(true); }
+  });
 
   function renderFonti() {
     const box = $('fonti'); box.replaceChildren();
@@ -306,8 +523,9 @@ li.done .nm{text-decoration:line-through;color:var(--muted)}
       const l = document.createElement('span'); l.textContent = FONTI[k].nome;
       const r = document.createElement('span');
       if (st.s === 'sconnesso') {
-        const b = document.createElement('button'); b.className = 'btn small'; b.textContent = 'Accedi con Google';
+        const b = document.createElement('button'); b.className = 'accedi'; b.textContent = 'Accedi con Google';
         b.addEventListener('click', () => accedi(k)); r.appendChild(b);
+        if (avviso[k]) { const m = document.createElement('div'); m.className = 'st err'; m.style.fontSize = '12px'; m.textContent = avviso[k]; r.appendChild(m); }
       } else {
         r.className = 'st ' + (st.s === 'ok' ? 'ok' : st.s === 'errore' ? 'err' : '');
         r.textContent = st.s === 'ok' ? 'collegata' : st.s === 'carico' ? 'collego…' : st.msg || 'errore';
@@ -318,6 +536,7 @@ li.done .nm{text-decoration:line-through;color:var(--muted)}
 
   function accedi(k) {
     const app = firebase.app(k);
+    avviso[k] = '';
     app.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => {
       stato[k] = { s: 'errore', msg: 'Accesso non riuscito' }; renderFonti();
     });
@@ -336,9 +555,6 @@ li.done .nm{text-decoration:line-through;color:var(--muted)}
         if (k === 'dispensa') { spesaDis = []; dbDis = null; } else { spesaCasa = []; scorteCasa = []; dbCasa = null; }
         render(); return;
       }
-      if (!EMAIL.includes(user.email)) {
-        stato[k] = { s: 'errore', msg: 'Account non autorizzato' }; auth.signOut(); render(); return;
-      }
       const db = app.firestore();
       if (k === 'dispensa') dbDis = db; else dbCasa = db;
       // Dispensa: la sua lista. Casa: la lista della spesa e le scorte (servono per aggiornare la quantità).
@@ -350,16 +566,14 @@ li.done .nm{text-decoration:line-through;color:var(--muted)}
           else if (col === 'spesa') spesaCasa = dati;
           else scorteCasa = dati;
           stato[k] = { s: 'ok', msg: '' }; render();
-        }, () => { stato[k] = { s: 'errore', msg: 'Connessione persa' }; render(); }));
+        }, err => {
+          // Le regole del database lasciano entrare solo le persone autorizzate: un altro account viene rifiutato qui.
+          if (err && err.code === 'permission-denied') { avviso[k] = 'Account non autorizzato: accedi con quello giusto.'; auth.signOut(); return; }
+          stato[k] = { s: 'errore', msg: 'Connessione persa' }; render();
+        }));
       });
     });
   }
-
-  $('nascondi').addEventListener('change', e => {
-    nascondi = e.target.checked;
-    try { localStorage.setItem('spesa.nascondi', nascondi ? '1' : '0'); } catch (x) {}
-    render();
-  });
 
   if (!window.firebase) {
     stato.dispensa = stato.casa = { s: 'errore', msg: 'Firebase non caricato' };
