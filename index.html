@@ -462,7 +462,7 @@ h2 { font-size: 20px; font-weight: 700; margin: 22px 4px 8px; }
     if (!nome) { $('nome').focus(); return; }
     try { localStorage.setItem('spesa.dove', dove); } catch (x) {}
     try {
-      await aggiungi(nome, dove, n, $('unita').value);
+      await Promise.race([aggiungi(nome, dove, n, $('unita').value), new Promise((ok) => setTimeout(ok, 1500))]); // senza rete la scrittura resta in coda e parte da sola
       $('nome').value = ''; $('qta').value = '1';
       esito('Aggiunto a ' + FONTI[dove].nome + ': ' + nome);
     } catch (err) {
@@ -546,6 +546,7 @@ h2 { font-size: 20px; font-weight: 700; margin: 22px 4px 8px; }
     let app;
     try { app = firebase.initializeApp(FONTI[k].cfg, k); }
     catch (e) { stato[k] = { s: 'errore', msg: 'Non disponibile' }; return; }
+    app.firestore().enablePersistence({ synchronizeTabs: true }).catch(() => {}); // cache sul dispositivo: la lista si apre anche senza rete
     const auth = app.auth();
     let off = [];
     auth.onAuthStateChanged(user => {
@@ -583,6 +584,9 @@ h2 { font-size: 20px; font-weight: 700; margin: 22px 4px 8px; }
     avvia('dispensa'); avvia('casa');
   }
 })();
+</script>
+<script>
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 </script>
 </body>
 </html>
