@@ -150,7 +150,7 @@ h2 { font-size: 20px; font-weight: 700; margin: 22px 4px 8px; }
 (() => {
   // Configurazioni pubbliche dei due progetti Firebase: la protezione sono le regole dei database,
   // che lasciano entrare solo le persone autorizzate (non servono elenchi di email qui).
-  const SOGLIA_CASA = 2;
+  const SOGLIA_CASA = 0; // come in Casa: in lista solo quando la scorta è a zero
   const FONTI = {
     dispensa: { nome: 'Dispensa', cfg: {
       apiKey: 'AIzaSyAgrmFh3Rdh4i3TubltgfY50h-Vw9SyV-w', authDomain: 'dispensa-e3c52.firebaseapp.com',
