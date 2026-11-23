@@ -1,6 +1,6 @@
 // Service worker: tiene in cache la pagina e le librerie così l'app si apre anche senza rete.
 // Non tocca le chiamate ai database e al login (Firestore ha una sua cache offline).
-const CACHE = 'spesa-v1';
+const CACHE = 'spesa-v2';
 const PRECACHE = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'https://cdn.jsdelivr.net/npm/firebase@10.12.5/firebase-app-compat.js', 'https://cdn.jsdelivr.net/npm/firebase@10.12.5/firebase-firestore-compat.js', 'https://cdn.jsdelivr.net/npm/firebase@10.12.5/firebase-auth-compat.js'];
 // Librerie e font con indirizzo versionato: una volta salvati non cambiano.
 const ESTERNI = ['cdn.jsdelivr.net', 'www.gstatic.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];

@@ -135,12 +135,13 @@ h2 { font-size: 20px; font-weight: 700; margin: 22px 4px 8px; }
     <div class="dove" role="radiogroup" aria-label="Dove aggiungerlo">
       <label><input type="radio" name="dove" value="casa" checked><span>Dispensa</span></label>
       <label><input type="radio" name="dove" value="dispensa"><span>Frigo</span></label>
+      <label><input type="radio" name="dove" value="congelatore"><span>Congelatore</span></label>
     </div>
     <button class="primario" type="submit">Aggiungi alla lista</button>
   </form>
   <p class="note" id="esito" role="status" hidden></p>
 
-  <p class="note">Unisce la lista della Dispensa e la lista della spesa di Casa. Gli articoli presenti in entrambe compaiono una volta sola. La spunta si salva nell'app di origine; spuntare un articolo di Casa ne aumenta anche la scorta, come fa Casa.</p>
+  <p class="note">Unisce la lista della Dispensa e la lista della spesa di Casa. Gli articoli presenti in entrambe compaiono una volta sola. La spunta mette l'articolo nel carrello. Alla fine della spesa premi «Fine spesa»: i prodotti vanno nel frigo o in dispensa e le quantità si sommano a quelle che c'erano già.</p>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.5/firebase-app-compat.js"></script>
@@ -169,7 +170,7 @@ h2 { font-size: 20px; font-weight: 700; margin: 22px 4px 8px; }
   const num = (v, d) => { const n = parseInt(v, 10); return Number.isFinite(n) ? n : d; };
   const stato = { dispensa: { s: 'carico', msg: '' }, casa: { s: 'carico', msg: '' } };
   const avviso = { dispensa: '', casa: '' };   // es. "Account non autorizzato" accanto al pulsante di accesso
-  let spesaDis = [], spesaCasa = [], scorteCasa = [];
+  let spesaDis = [], spesaCasa = [], scorteCasa = [], cibiDis = [];
   let dbDis = null, dbCasa = null;
   let modificaK = null;     // riga di cui stai correggendo il nome (chiave = nome in minuscolo)
   let modificaTesto;        // testo scritto finora: un aggiornamento in arrivo non lo cancella
@@ -252,8 +253,8 @@ h2 { font-size: 20px; font-weight: 700; margin: 22px 4px 8px; }
     }
     const q = qtaRiga(r);
     const meta = [];
-    if (r.dis) meta.push('<span class="tag dis">Dispensa</span>');
-    if (r.cas) meta.push('<span class="tag cas">Casa</span>');
+    if (r.dis) meta.push('<span class="tag dis">' + (postoDis(r.dis) === 'congelatore' ? 'Congelatore' : 'Frigo') + '</span>');
+    if (r.cas) meta.push('<span class="tag cas">Dispensa</span>');
     dettaglio(r).forEach(x => meta.push('<span style="white-space:nowrap">' + escH(x) + '</span>'));
     const controllo = r.preso
       ? `<span class="qta">× ${fmtN(q)}</span>`
@@ -292,7 +293,8 @@ h2 { font-size: 20px; font-weight: 700; margin: 22px 4px 8px; }
       ${tolte ? `<button class="link" data-az="rimetti">Rimetti le voci tolte (${tolte})</button>` : ''}
       ${prese.length ? `<h2>Nel carrello</h2>
         <div class="card">${prese.map(htmlRiga).join('')}</div>
-        <button class="link rosso" data-az="svuota">Svuota i comprati</button>` : ''}
+        <button class="primario" data-az="fine">Fine spesa: metti nel frigo e in dispensa (${prese.length})</button>
+        <button class="link rosso" data-az="svuota">Svuota senza aggiungere</button>` : ''}
       ${senza.length ? `<p class="note">Scorte basse non ancora in lista (${escH(senza.map(s => s.nome).join(', '))}): apri l'app Casa per aggiungerle.</p>` : ''}`;
     const nomi = new Set(scorteCasa.map(s => s.nome));
     $('suggerimenti').innerHTML = [...nomi].sort((p, q) => p.localeCompare(q, 'it')).map(n => `<option value="${escH(n)}"></option>`).join('');
@@ -301,17 +303,11 @@ h2 { font-size: 20px; font-weight: 700; margin: 22px 4px 8px; }
 
   const erroreSalva = () => { $('count').textContent = 'Non sono riuscito a salvare'; };
 
-  // Come in Casa: comprare una voce nata da una scorta ne aumenta la quantità, togliere la spunta la riporta indietro.
+  // Spuntare una voce di Casa la mette solo nel carrello (comprato + daAggiungere): la scorta aumenta con "Fine spesa".
   function segnaCasa(x, comprato) {
     if (!dbCasa || x.comprato === comprato) return;
-    const rifV = dbCasa.collection('spesa').doc(x.id);
-    const rifS = x.scortaId ? dbCasa.collection('scorte').doc(x.scortaId) : null;
-    x.comprato = comprato;
-    dbCasa.runTransaction(async t => {
-      const s = rifS ? await t.get(rifS) : null;
-      t.update(rifV, { comprato });
-      if (s && s.exists) t.update(rifS, { quantita: Math.max(0, num(s.data().quantita, 0) + (comprato ? 1 : -1) * num(x.quantita, 1)) });
-    }).catch(erroreSalva);
+    x.comprato = comprato; x.daAggiungere = comprato;
+    dbCasa.collection('spesa').doc(x.id).update({ comprato, daAggiungere: comprato }).catch(erroreSalva);
   }
 
   function segna(r, preso) {
@@ -371,6 +367,89 @@ h2 { font-size: 20px; font-weight: 700; margin: 22px 4px 8px; }
     righe().filter(r => r.preso).forEach(r => { if (r.dis) togliDis(r.dis); if (r.cas) togliCas(r.cas); });
     render(true);
   }
+
+  // Dove va un prodotto della lista della Dispensa: frigo o congelatore (campo posto, se c'è).
+  const postoDis = s => (s && s.posto === 'congelatore') ? 'congelatore' : 'frigo';
+
+  // FINE SPESA: ogni prodotto nel carrello entra nella dispensa (scorte di Casa) o nel frigo/congelatore (cibi della Dispensa),
+  // sommando la quantità a quella già presente; poi esce dalla lista. Un prodotto alla volta: se qualcosa si ferma, quelli già
+  // fatti sono già usciti dalla lista e rimandando il pulsante non si contano due volte.
+  let fineInCorso = false;
+  async function fineSpesa() {
+    if (fineInCorso) return;
+    const prese = righe().filter(r => r.preso);
+    if (!prese.length) return;
+    const nCas = prese.filter(r => r.cas).length, nDis = prese.filter(r => r.dis).length;
+    if (!confirm('Fine spesa: aggiungo ' + (nDis ? nDis + ' prodotti al frigo/congelatore' : '') + (nDis && nCas ? ' e ' : '') + (nCas ? nCas + ' alla dispensa' : '') + '?')) return;
+    fineInCorso = true;
+    const es = { dispensa: 0, frigo: 0, congelatore: 0, senzaData: 0, errori: 0 };
+    for (const r of prese) {
+      try {
+        if (r.cas) { if (await carrelloInDispensa(r.cas)) es.dispensa++; }
+        if (r.dis) {
+          const posto = postoDis(r.dis);
+          const senzaData = await carrelloInFrigo(r.dis, posto);
+          es[posto]++; if (senzaData) es.senzaData++;
+        }
+      } catch (e) { es.errori++; }
+    }
+    fineInCorso = false;
+    const parti = [];
+    if (es.dispensa) parti.push(es.dispensa + ' in dispensa');
+    if (es.frigo) parti.push(es.frigo + ' in frigo' + (es.senzaData ? ' (' + es.senzaData + ' da completare con la data)' : ''));
+    if (es.congelatore) parti.push(es.congelatore + ' in congelatore');
+    esito((parti.length ? 'Fatto: ' + parti.join(', ') + '.' : 'Niente da aggiungere.') + (es.errori ? ' ' + es.errori + ' non riusciti: restano nel carrello, riprova.' : ''));
+    render(true);
+  }
+
+  // Casa: somma la quantità alla scorta (la crea se non c'è) ed elimina la voce dalla lista.
+  // Se la voce era già stata contata (spuntata nell'app Casa) toglie solo la voce.
+  async function carrelloInDispensa(x) {
+    const q = Math.max(1, num(x.quantita, 1));
+    if (x.daAggiungere) {
+      const scorta = (x.scortaId && scorteCasa.find(y => y.id === x.scortaId)) || scorteCasa.find(y => norm(y.nome) === norm(x.nome));
+      if (scorta) {
+        const rif = dbCasa.collection('scorte').doc(scorta.id);
+        await dbCasa.runTransaction(async t => {
+          const sn = await t.get(rif);
+          if (sn.exists) t.update(rif, { quantita: num(sn.data().quantita, 0) + q });
+          else t.set(rif, { id: scorta.id, nome: x.nome, categoria: '', quantita: q, minimo: 1, unita: x.unita || '' });
+        });
+      } else {
+        const id = uid();
+        await dbCasa.collection('scorte').doc(id).set({ id, nome: x.nome, categoria: '', quantita: q, minimo: 1, unita: x.unita || '' });
+      }
+    }
+    await dbCasa.collection('spesa').doc(x.id).delete();
+    spesaCasa = spesaCasa.filter(y => y.id !== x.id);
+    return !!x.daAggiungere;
+  }
+
+  // Dispensa (frigo/congelatore): se c'è già lo stesso prodotto nello stesso posto (e stessa unità) somma la quantità e
+  // tiene la sua scadenza; altrimenti lo crea senza data ("da completare", solo per il frigo). Poi toglie la voce dalla lista.
+  async function carrelloInFrigo(sv, posto) {
+    const n = typeof sv.n === 'number' && sv.n > 0 ? sv.n : 1;
+    const unita = sv.unita || 'pz';
+    const stessa = c => norm(c.nome) === norm(sv.nome) && (c.posto === 'congelatore' ? 'congelatore' : 'frigo') === posto
+      && (!c.unita || c.unita === unita || !sv.unita);
+    const es = cibiDis.find(stessa);
+    let senzaData = false;
+    if (es) {
+      const rif = dbDis.collection('cibi').doc(es.id);
+      await dbDis.runTransaction(async t => {
+        const sn = await t.get(rif);
+        const att = sn.exists && typeof sn.data().n === 'number' ? sn.data().n : 1;
+        if (sn.exists) t.update(rif, { n: Math.round((att + n) * 100) / 100, unita: sn.data().unita || unita });
+        else t.set(rif, { nome: sv.nome, n, unita, tipo: sv.tipo || '', scadenza: '', posto, creato: new Date().toISOString(), ...(posto === 'frigo' ? { daCompletare: true } : {}) });
+      });
+    } else {
+      senzaData = posto === 'frigo';
+      await dbDis.collection('cibi').add({ nome: sv.nome, n, unita, tipo: sv.tipo || '', scadenza: '', posto, creato: new Date().toISOString(), ...(senzaData ? { daCompletare: true } : {}) });
+    }
+    togliDis(sv);
+    return senzaData;
+  }
+
   function rimettiTolte() {
     tolteDis().forEach(s => {
       s.nascosto = false;
@@ -432,13 +511,15 @@ h2 { font-size: 20px; font-weight: 700; margin: 22px 4px 8px; }
   // Aggiunge un prodotto alla lista di Casa o della Dispensa, senza doppioni: se c'è già, ne somma la quantità.
   async function aggiungi(nome, dove, n, unita) {
     const k = norm(nome);
+    const congela = dove === 'congelatore';
+    if (congela) dove = 'dispensa';
     if (dove === 'dispensa') {
       if (!dbDis) throw new Error('Accedi prima alla Dispensa');
       const col = dbDis.collection('spesa');
       const es = spesaDis.find(s => norm(s.nome) === k);
-      if (es && !es.nascosto) return col.doc(es.id).update({ n: Math.round(((typeof es.n === 'number' && es.n > 0 ? es.n : 1) + n) * 100) / 100 });
-      if (es) return col.doc(es.id).update({ nascosto: false, preso: false, n, unita });
-      return col.add({ nome, n, unita, tipo: '', aggiunto: new Date().toISOString(), preso: false });
+      if (es && !es.nascosto) return col.doc(es.id).update(Object.assign({ n: Math.round(((typeof es.n === 'number' && es.n > 0 ? es.n : 1) + n) * 100) / 100 }, congela ? { posto: 'congelatore' } : {}));
+      if (es) return col.doc(es.id).update(Object.assign({ nascosto: false, preso: false, n, unita }, congela ? { posto: 'congelatore' } : {}));
+      return col.add(Object.assign({ nome, n, unita, tipo: '', aggiunto: new Date().toISOString(), preso: false }, congela ? { posto: 'congelatore' } : {}));
     }
     if (!dbCasa) throw new Error('Accedi prima a Casa');
     const col = dbCasa.collection('spesa');
@@ -464,9 +545,9 @@ h2 { font-size: 20px; font-weight: 700; margin: 22px 4px 8px; }
     try {
       await Promise.race([aggiungi(nome, dove, n, $('unita').value), new Promise((ok) => setTimeout(ok, 1500))]); // senza rete la scrittura resta in coda e parte da sola
       $('nome').value = ''; $('qta').value = '1';
-      esito('Aggiunto a ' + FONTI[dove].nome + ': ' + nome);
+      esito('Aggiunto a ' + ({ casa: 'Dispensa', dispensa: 'Frigo', congelatore: 'Congelatore' }[dove]) + ': ' + nome);
     } catch (err) {
-      esito(err && err.code === 'permission-denied' ? 'Non ho il permesso di scrivere in ' + FONTI[dove].nome : (err && err.message) || 'Non sono riuscito ad aggiungerlo');
+      esito(err && err.code === 'permission-denied' ? 'Non ho il permesso di scrivere in ' + (dove === 'casa' ? 'Casa' : 'Dispensa') : (err && err.message) || 'Non sono riuscito ad aggiungerlo');
     }
   });
 
@@ -486,7 +567,8 @@ h2 { font-size: 20px; font-weight: 700; margin: 22px 4px 8px; }
         break;
       case 'annulla-nome': modificaK = null; render(true); break;
       case 'rimetti': rimettiTolte(); break;
-      case 'svuota': svuotaPresi(); break;
+      case 'svuota': if (confirm('Svuoto il carrello senza aggiungere niente al frigo e alla dispensa?')) svuotaPresi(); break;
+      case 'fine': fineSpesa(); break;
       case 'condividi': condividi(); break;
       default: break;
     }
@@ -553,17 +635,17 @@ h2 { font-size: 20px; font-weight: 700; margin: 22px 4px 8px; }
       off.forEach(f => f()); off = [];
       if (!user) {
         stato[k] = { s: 'sconnesso', msg: '' };
-        if (k === 'dispensa') { spesaDis = []; dbDis = null; } else { spesaCasa = []; scorteCasa = []; dbCasa = null; }
+        if (k === 'dispensa') { spesaDis = []; cibiDis = []; dbDis = null; } else { spesaCasa = []; scorteCasa = []; dbCasa = null; }
         render(); return;
       }
       const db = app.firestore();
       if (k === 'dispensa') dbDis = db; else dbCasa = db;
       // Dispensa: la sua lista. Casa: la lista della spesa e le scorte (servono per aggiornare la quantità).
-      const cols = k === 'dispensa' ? ['spesa'] : ['spesa', 'scorte'];
+      const cols = k === 'dispensa' ? ['spesa', 'cibi'] : ['spesa', 'scorte'];
       cols.forEach(col => {
         off.push(db.collection(col).onSnapshot(snap => {
           const dati = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
-          if (k === 'dispensa') spesaDis = dati;
+          if (k === 'dispensa') { if (col === 'cibi') cibiDis = dati; else spesaDis = dati; }
           else if (col === 'spesa') spesaCasa = dati;
           else scorteCasa = dati;
           stato[k] = { s: 'ok', msg: '' }; render();
